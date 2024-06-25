@@ -53,7 +53,7 @@ public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
      *
      * @since 0.0.3
      */
-    private final SkipList<V> skipList = new SkipListImpl<>();
+    private final SkipList<V> skipList = new SkipListImpl<>(16);
 
     /**
      * 缓存实现
