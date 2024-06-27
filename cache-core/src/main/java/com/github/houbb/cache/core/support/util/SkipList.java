@@ -5,7 +5,7 @@ package com.github.houbb.cache.core.support.util;
  * @author Celebridge
  * @since 0.0.13
  */
-public interface SkipList<V> {
+public interface SkipList<K> {
 
     /**
      * 查询 key 的信息
@@ -13,7 +13,7 @@ public interface SkipList<V> {
      * @return 节点对象
      * @since 0.0.13
      */
-    SkipNode<V> search(int key);
+    SkipNode<K> search(long key);
 
 
     /**
@@ -21,12 +21,18 @@ public interface SkipList<V> {
      * @param key 信息
      * @since 0.0.13
      */
-    void delete(int key);
+    void delete(long key);
 
     /**
      * 添加 node 节点
      * @param value 信息
      * @since 0.0.13
      */
-    void insert(int key, V value);
+    void insert(long key, K value);
+
+    /**
+     * 返回跳表大小
+     * @return int
+     */
+    int size();
 }

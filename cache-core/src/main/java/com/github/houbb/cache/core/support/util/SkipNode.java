@@ -24,7 +24,7 @@ public interface SkipNode<V> {
      * 获取对应的 key 信息
      * @since 0.0.13
      */
-    int getKey();
+    long getKey();
 
     /**
      * 获取对应的 value 信息

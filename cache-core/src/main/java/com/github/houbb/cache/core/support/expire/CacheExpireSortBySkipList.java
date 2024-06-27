@@ -9,6 +9,7 @@ import com.github.houbb.cache.core.support.listener.remove.CacheRemoveListenerCo
 import com.github.houbb.cache.core.support.util.SkipList;
 import com.github.houbb.cache.core.support.util.SkipNode;
 import com.github.houbb.cache.core.support.util.impl.SkipListImpl;
+import com.github.houbb.cache.core.support.util.impl.SkipNodeImpl;
 import com.github.houbb.heaven.util.util.CollectionUtil;
 import com.github.houbb.heaven.util.util.MapUtil;
 
@@ -34,6 +35,13 @@ import java.util.concurrent.TimeUnit;
 public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
 
     /**
+     * 最大层数
+     *
+     * @since 0.0.3
+     */
+    private int MAX_LEVEL = 16;
+
+    /**
      * 单次清空的数量限制
      *
      * @since 0.0.3
@@ -46,14 +54,14 @@ public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
      *
      * @since 0.0.3
      */
-    private final Map<K, SkipNode<V>> expireMap = new HashMap<>();
+    private final Map<K, SkipNode<K>> expireMap = new HashMap<>();
 
     /**
      * 跳表用于按过期时间存储节点，快速定位添加或删除节点
-     *
+     * TODO 传入自定义节点层数
      * @since 0.0.3
      */
-    private final SkipList<V> skipList = new SkipListImpl<>(16);
+    private final SkipListImpl<K> skipList = new SkipListImpl<>(MAX_LEVEL);
 
     /**
      * 缓存实现
@@ -91,29 +99,46 @@ public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
     private class ExpireThread implements Runnable {
         @Override
         public void run() {
-            //TODO 从表头开始便利链表执行过期
+            if (skipList.size() != 0) {
+                //TODO 暂时使用朴素遍历，应该实现迭代器
+                SkipNodeImpl<K> tempNode = (SkipNodeImpl<K>) skipList.getHead();
+                int count = 0;
+                long currentTime = System.currentTimeMillis();
+                while (count < LIMIT && tempNode.next.get(0) != null && tempNode.next.get(0).getKey() < currentTime) {
+                    SkipNodeImpl<K> readyToDelNode = tempNode.next.get(0);
+                    skipList.delete(tempNode.next.get(0).getKey());
+                    cache.remove(tempNode.getValue());
+                    count++;
+                }
+            }
         }
     }
 
     @Override
     public void expire(K key, long expireAt) {
         //TODO 使用key和exprieAt创建链表节点，插入链表中并放入expireMap
-        SkipNode<V> node = null;
+        SkipNodeImpl<K> node = new SkipNodeImpl<>(expireAt, key, MAX_LEVEL);
+        skipList.insert(expireAt, key);
         expireMap.put(key, node);
     }
 
     @Override
     public void refreshExpire(Collection<K> keyList) {
-        if (CollectionUtil.isEmpty(keyList)) {
-            return;
+        if (skipList.size() != 0) {
+            //TODO 暂时使用朴素遍历，应该实现迭代器
+            SkipNodeImpl<K> tempNode = (SkipNodeImpl<K>) skipList.getHead();
+            long currentTime = System.currentTimeMillis();
+            while (tempNode.next.get(0) != null && tempNode.next.get(0).getKey() < currentTime) {
+                SkipNodeImpl<K> readyToDelNode = tempNode.next.get(0);
+                skipList.delete(tempNode.next.get(0).getKey());
+                cache.remove(tempNode.getValue());
+            }
         }
-        //TODO 直接从表头开始遍历并过期
     }
 
     @Override
     public Long expireTime(K key) {
-        //TODO 返回过期时间
-        return 0L;
+        return expireMap.get(key).getKey();
     }
 
     /**

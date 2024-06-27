@@ -2,34 +2,68 @@ package com.github.houbb.cache.core.support.util.impl;
 
 import com.github.houbb.cache.core.support.util.SkipList;
 import com.github.houbb.cache.core.support.util.SkipNode;
-import com.github.houbb.cache.core.support.util.impl.SkipNodeImpl;
-
 import java.util.ArrayList;
-import java.util.Random;
 
-// 跳表中存储的是正整数，并且存储的数据是不重复的
-public class SkipListImpl<V> implements SkipList<V> {
+/**
+ * 跳表实现
+ *
+ * @param <K> 为缓存中存储的key
+ * @author Celebridge
+ * @since 0.0.3
+ */
+public class SkipListImpl<K> implements SkipList<K> {
 
+    /**
+     * 最大层数
+     *
+     * @since 0.0.3
+     */
+    private final int MAX_LEVEL;
+    /**
+     * 实际最大层数
+     *
+     * @since 0.0.3
+     */
 
+    private int levelCount = 1;
 
-    private final int MAX_LEVEL;    // 结点的个数
+    /**
+     * 头节点
+     *
+     * @since 0.0.3
+     */
+    private final SkipNodeImpl<K> head;
 
-    private int levelCount = 1;   // 索引的层级数
+    /**
+     * 跳表大小
+     *
+     * @since 0.0.3
+     */
+    private int size = 0;
 
-    private SkipNodeImpl<V> head;    // 头结点
-
-    private Random random = new Random();
+    /**
+    * @Description
+    * @param MAX_LEVEL 最大层数
+    * @Author Celebridge
+    * @Date 2024/6/28
+    */
 
     public SkipListImpl(int MAX_LEVEL) {
         this.MAX_LEVEL = MAX_LEVEL;
-        this.head = new SkipNodeImpl<V>(0, null, MAX_LEVEL);
+        this.head = new SkipNodeImpl<K>(0, null, MAX_LEVEL);
     }
-    // 查找操作
-    public SkipNode<V> search(int key){
-        SkipNodeImpl<V> p = (SkipNodeImpl<V>) head;
+    /**
+    * @Description 使用时间查询到节点并返回
+    * @param key 该key非缓存中的key，而是约定的过期时间
+    * @return com.github.houbb.cache.core.support.util.SkipNode<V>
+    * @Author Celebridge
+    * @Date 2024/6/28
+    */
+    public SkipNode<K> search(long key){
+        SkipNodeImpl<K> p = (SkipNodeImpl<K>) head;
         for(int i = levelCount - 1; i >= 0; --i){
             while(p.next.get(i) != null && p.next.get(i).getKey() < key){
-                p = (SkipNodeImpl<V>) p.next.get(i);
+                p = (SkipNodeImpl<K>) p.next.get(i);
             }
         }
 
@@ -40,13 +74,20 @@ public class SkipListImpl<V> implements SkipList<V> {
         }
     }
 
-    // 插入操作
-    public void insert(int key, V value){
+    /**
+    * @Description
+    * @param key 过期时间
+	* @param value 对应的cache中的key值
+    * @Author Celebridge
+    * @Date 2024/6/28
+    */
+    public void insert(long key, K value){
+        //随机选择层数
         int level = randomLevel();
-        SkipNodeImpl<V> newNode = new SkipNodeImpl<>(key, value, this.MAX_LEVEL);// 通过随机函数改变索引层的结点布置
-        ArrayList<SkipNodeImpl<V>> update = new ArrayList<>();
+        SkipNodeImpl<K> newNode = new SkipNodeImpl<>(key, value, this.MAX_LEVEL);// 通过随机函数改变索引层的结点布置
+        ArrayList<SkipNodeImpl<K>> update = new ArrayList<>();
 
-        SkipNodeImpl<V> p = head;
+        SkipNodeImpl<K> p = head;
         for(int i = level - 1; i >= 0; --i){
             while(p.next.get(i) != null && p.next.get(i).getKey() < key){
                 p = p.next.get(i);
@@ -58,15 +99,23 @@ public class SkipListImpl<V> implements SkipList<V> {
             newNode.next.add(update.get(i).next.get(i));
             update.get(i).next.set(i, newNode);
         }
+        //更新实际最大层数
         if(levelCount < level){
             levelCount = level;
         }
+        size++;
     }
 
-    // 删除操作
-    public void delete(int key){
-        ArrayList<SkipNodeImpl<V>> update = new ArrayList<>(levelCount);
-        SkipNodeImpl<V> p = head;
+    /**
+    * @Description
+    * @param key 过期时间
+    * @Author Celebridge
+    * @Date 2024/6/28
+    */
+    public void delete(long key){
+        ArrayList<SkipNodeImpl<K>> update = new ArrayList<>(levelCount);
+        SkipNodeImpl<K> p = head;
+        //将每一层的待删除节点的前一个节点收集，哪怕后续节点不是待删除节点
         for(int i = levelCount - 1; i >= 0; --i){
             while(p.next.get(i) != null && p.next.get(i).getKey() < key){
                 p = p.next.get(i);
@@ -76,22 +125,38 @@ public class SkipListImpl<V> implements SkipList<V> {
 
         if(p.next.get(0) != null && p.next.get(0).getKey() == key){
             for(int i = levelCount - 1; i >= 0; --i){
+                //指向待删除节点情况
                 if(update.get(i).next.get(i) != null && update.get(i).next.get(i).getKey() == key){
                     update.get(i).next.set(i, update.get(i).next.get(i).next.get(i));
                 }
             }
+            size--;
         }
     }
 
-    // 随机函数
-    private int randomLevel(){
-        int level = 1;
-        for(int i = 1; i < MAX_LEVEL; ++i){
-            if(random.nextInt() % 2 == 1){
-                level++;
-            }
-        }
+    /**
+    * @Description  返回跳表大小
+    * @return int
+    * @Author Celebridge
+    * @Date 2024/6/28
+    */
+    @Override
+    public int size(){
+        return this.size;
+    }
 
-        return level;
+    /**
+    * @Description 随机返回 1 到 MAX_LEVEL之间的整数
+    * @return int
+    * @Author Celebridge
+    * @Date 2024/6/28
+    */
+    private int randomLevel(){
+        return (int) (Math.random() * MAX_LEVEL) + 1;
+    }
+
+    //TODO 迭代器实现后删除
+    public SkipNodeImpl<K> getHead() {
+        return head;
     }
 }
