@@ -3,6 +3,9 @@ package com.github.houbb.cache.core.support.util.impl;
 import com.github.houbb.cache.core.support.util.SkipList;
 import com.github.houbb.cache.core.support.util.SkipNode;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.function.Consumer;
 
 /**
  * 跳表实现
@@ -11,7 +14,7 @@ import java.util.ArrayList;
  * @author Celebridge
  * @since 0.0.3
  */
-public class SkipListImpl<K> implements SkipList<K> {
+public class SkipListImpl<K> implements SkipList<K>, Iterable<SkipNodeImpl<K>> {
 
     /**
      * 最大层数
@@ -158,5 +161,27 @@ public class SkipListImpl<K> implements SkipList<K> {
     //TODO 迭代器实现后删除
     public SkipNodeImpl<K> getHead() {
         return head;
+    }
+
+    @Override
+    public Iterator<SkipNodeImpl<K>> iterator() {
+        return new Iterator<SkipNodeImpl<K>>() {
+            SkipNodeImpl<K> indexNode = head.next.get(0);
+            @Override
+            public boolean hasNext() {
+                return indexNode != null;
+            }
+            @Override
+            public SkipNodeImpl<K> next() {
+                SkipNodeImpl<K> res = indexNode;
+                indexNode = indexNode.next.get(0);
+                return res;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 }

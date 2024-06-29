@@ -15,6 +15,7 @@ import com.github.houbb.heaven.util.util.MapUtil;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -100,14 +101,14 @@ public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
         @Override
         public void run() {
             if (skipList.size() != 0) {
-                //TODO 暂时使用朴素遍历，应该实现迭代器
-                SkipNodeImpl<K> tempNode = (SkipNodeImpl<K>) skipList.getHead();
+                Iterator<SkipNodeImpl<K>> itr = skipList.iterator();
                 int count = 0;
                 long currentTime = System.currentTimeMillis();
-                while (count < LIMIT && tempNode.next.get(0) != null && tempNode.next.get(0).getKey() < currentTime) {
-                    SkipNodeImpl<K> readyToDelNode = tempNode.next.get(0);
-                    skipList.delete(tempNode.next.get(0).getKey());
-                    cache.remove(tempNode.getValue());
+                while (count < LIMIT && itr.hasNext()) {
+                    SkipNodeImpl<K> temp = itr.next();
+                    if(temp.getKey() > currentTime) break;
+                    skipList.delete(temp.getKey());
+                    cache.remove(temp.getValue());
                     count++;
                 }
             }
@@ -116,7 +117,6 @@ public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
 
     @Override
     public void expire(K key, long expireAt) {
-        //TODO 使用key和exprieAt创建链表节点，插入链表中并放入expireMap
         SkipNodeImpl<K> node = new SkipNodeImpl<>(expireAt, key, MAX_LEVEL);
         skipList.insert(expireAt, key);
         expireMap.put(key, node);
@@ -125,13 +125,13 @@ public class CacheExpireSortBySkipList<K,V> implements ICacheExpire<K,V> {
     @Override
     public void refreshExpire(Collection<K> keyList) {
         if (skipList.size() != 0) {
-            //TODO 暂时使用朴素遍历，应该实现迭代器
-            SkipNodeImpl<K> tempNode = (SkipNodeImpl<K>) skipList.getHead();
+            Iterator<SkipNodeImpl<K>> itr = skipList.iterator();
             long currentTime = System.currentTimeMillis();
-            while (tempNode.next.get(0) != null && tempNode.next.get(0).getKey() < currentTime) {
-                SkipNodeImpl<K> readyToDelNode = tempNode.next.get(0);
-                skipList.delete(tempNode.next.get(0).getKey());
-                cache.remove(tempNode.getValue());
+            while (itr.hasNext()) {
+                SkipNodeImpl<K> temp = itr.next();
+                if(temp.getKey() > currentTime) break;
+                skipList.delete(temp.getKey());
+                cache.remove(temp.getValue());
             }
         }
     }
