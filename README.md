@@ -1,7 +1,6 @@
 # 项目简介
 
-[Cache](https://github.com/houbb/cache) 用于实现一个可拓展的本地缓存。
-
+用于实现一个可拓展的本地缓存。
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.houbb/cache/badge.svg)](http://mvnrepository.com/artifact/com.github.houbb/cache)
 [![Build Status](https://www.travis-ci.org/houbb/cache.svg?branch=master)](https://www.travis-ci.org/houbb/cache?branch=master)
