@@ -13,9 +13,7 @@
 
 ## 创作目的
 
-- 为日常开发提供一套简单易用的缓存框架
-
-- 便于后期多级缓存开发
+- 优化缓存框架，提升代码能力
 
 - 学以致用，开发一个类似于 redis 的渐进式缓存框架
 
@@ -42,10 +40,6 @@
 - 支持 load 初始化和 persist 持久化
 
 RDB 和 AOF 两种模式
-
-# 变更日志
-
-> [变更日志](https://github.com/houbb/cache/blob/master/doc/CHANGELOG.md)
 
 # 快速开始
 
